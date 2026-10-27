@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const storageCode=fs.readFileSync(path.join(__dirname,'../assets/storage.js'),'utf8');
+const api=()=>{const c=vm.createContext({});vm.runInContext(storageCode,c);return c.HGStorage};
+const store=(data={},fail=()=>false)=>{const m=new Map(Object.entries(data));return {getItem:k=>m.get(k)??null,setItem(k,v){if(fail(k,v))throw Error('quota');m.set(k,v)},removeItem:k=>m.delete(k),m};};
+const source={tab:'v8bunker',tasks:{p01:true,v7_sitting:true},stock:{Fichtenholzbretter:527},placed:{0:1,7282:1,9880:1},notes:'Mein Keller ♥',level:-19,world:{x:-211,y:112,z:-389,rot:270},sitePlace:{x:-222,y:115,z:-380,rot:90},closed:{'01':true},hbGuideV5:{height:-19,id:9880},customFutureFlag:{keep:true}};
+const a=api(),s=store({[a.LEGACY]:JSON.stringify(source),'herbstgrat-grand-v8':'{"group":"keller"}','herbstgrat-grand-tools-v1':'{"checked":{"0":true}}'}),m=a.migrate(s);
+assert.equal(s.getItem(a.LEGACY),JSON.stringify(source));for(const k of ['tasks','stock','placed','notes','hbGuideV5','customFutureFlag'])assert.equal(JSON.stringify(m[k]),JSON.stringify(source[k]));assert.equal(m.world.x,-222);assert.equal(m.world.rot,90);assert.equal(m.level,-19);assert.equal(m.schemaVersion,9);
+const again=a.migrate(s);assert.equal(JSON.stringify(again),s.getItem(a.KEY));
+const bundle=a.backup(s,m),target=store();a.restore(target,bundle,{});assert.equal(JSON.parse(target.getItem(a.KEY)).placed[9880],1);assert.equal(target.getItem('herbstgrat-grand-v8'),'{"group":"keller"}');
+const legacyBackup={project:'HERBSTGRAT GRAND',schema:5,state:source};assert.equal(a.restore(store(),legacyBackup,{}).notes,source.notes);
+const noSpace=store({[a.LEGACY]:JSON.stringify(source)},()=>true);assert.equal(a.migrate(noSpace).placed[9880],1);assert.equal(noSpace.getItem(a.LEGACY),JSON.stringify(source));
+const bad=api(),corrupt=store({[bad.KEY]:'{"broken":'});assert.equal(bad.migrate(corrupt),null);assert.throws(()=>bad.write(corrupt,{tasks:{}}));assert.equal(corrupt.getItem(bad.KEY),'{"broken":');assert.equal(bad.backup(corrupt,{}).recoveryRaw,'{"broken":');
+bad.restore(corrupt,legacyBackup,{});bad.write(corrupt,source);assert.equal(JSON.parse(corrupt.getItem(bad.KEY)).notes,source.notes);
+const rollback=store({[a.KEY]:'original','herbstgrat-grand-v8':'previous'},(k,v)=>k===a.KEY&&v!=='original');assert.throws(()=>a.restore(rollback,bundle,{}));assert.equal(rollback.getItem(a.KEY),'original');assert.equal(rollback.getItem('herbstgrat-grand-v8'),'previous');
+const malformed=a.validate({tasks:null,stock:[],placed:null,closed:null,world:{x:'x',y:null,z:'Infinity',rot:45},notes:3,level:999});assert.equal(malformed.level,21);assert.equal(malformed.world.x,-211);assert.equal(malformed.world.rot,0);assert.equal(malformed.notes,'');assert.equal(Object.keys(malformed.tasks).length,0);
+assert.throws(()=>a.restore(store(),{project:'other',state:{}},{}));
+console.log(JSON.stringify({migrationTestsPassed:true,legacyPreserved:true,blockIdsStable:true,supplementalPreferences:true,quotaFallback:true,corruptStateProtected:true,atomicRestoreRollback:true}));
