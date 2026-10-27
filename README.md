@@ -35,15 +35,3 @@ V8 nutzte für den Hauptspielstand weiterhin `herbstgrat-grand-v5`. V9 übernimm
 
 Die automatische Übernahme funktioniert im selben Browser unter derselben Herkunft, zum Beispiel auf der bisherigen GitHub-Pages-Adresse. Für Browser- oder Gerätewechsel unter **Werkzeuge → Sicherung exportieren/importieren** arbeiten. Alte V5/V8-Sicherungen werden angenommen. Originaltexturen müssen auf einem anderen Gerät erneut importiert werden; die frühere V8-Atlasablage bleibt erhalten, wird aber nicht als vollständiges Originalpaket ausgegeben.
 
-## Lokal starten und testen
-
-Keine Installation und kein Build erforderlich. Mit Node.js ab 18:
-
-```sh
-npm start
-npm test
-```
-
-Die lokale Vorschau läuft auf `http://127.0.0.1:4173`. Zum Veröffentlichen `index.html` und den vollständigen Ordner `assets/` gemeinsam auf denselben statischen Host laden. GitHub Pages kann direkt die Repository-Wurzel des bisherigen `main`-Branches bedienen. Der Unterpfad `/herbstgrat-grand/` wird unterstützt.
-
-Die Tests prüfen Datenintegrität, Migration samt Fehlerfällen, Koordinaten, Geometrie, ZIP-Import und den Renderer-Lebenszyklus. Die tatsächlichen Browserprüfungen und verbleibenden Grenzen stehen in [QA.md](QA.md).
